@@ -14,9 +14,8 @@ files = [
 ]
 
 
-def pl_read_xml(file: str, datapath: str = "data/") -> pd.DataFrame:
-    pd_df = pd.read_xml(f"{datapath}{file}.xml")
-    return pd_df
+def read_xml(file: str, datapath: str = "data/") -> pd.DataFrame:
+    return pd.read_xml(f"{datapath}{file}.xml")
 
 
 def load_dataset(datapath: str = "data/") -> dict[str, pd.DataFrame]:
@@ -27,11 +26,10 @@ def load_dataset(datapath: str = "data/") -> dict[str, pd.DataFrame]:
     data = {}
 
     for file in files:
-        if not os.path.exists(f"{datapath}{file}.xml"):
-            print(f"File {file}.xml not found. Loading data from XML files.")
-            os.system(f"bash utils/load_{file}.sh")
-
-        data[file] = pl_read_xml(file, datapath)
-        print(f"Loaded {file}.xml")
+        if os.path.exists(f"{datapath}{file}.xml"):
+            data[file] = read_xml(file, datapath)
+            print(f"Loaded {file}.xml")
+        else:
+            print(f"File {file}.xml not found in loaded data.")
 
     return data
