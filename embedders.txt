@@ -1,0 +1,9 @@
+Small embedders from Hugging Face suitable for Information Retrieval tasks:
+
+1. MiniLM: sentence-transformers/all-MiniLM-L6-v2
+
+2. DistilBERT: sentence-transformers/distilbert-base-nli-stsb-mean-tokens
+
+3. mpnet-base: sentence-transformers/paraphrase-mpnet-base-v2
+
+4. TinyBERT: huawei-noah/TinyBERT_General_4L_312D
