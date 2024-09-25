@@ -1,3 +1,7 @@
+# Embeddings
+
+*.obj
+
 # Data files
 data/*
 
