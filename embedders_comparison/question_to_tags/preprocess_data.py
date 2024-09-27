@@ -20,15 +20,17 @@ def parse_dataset(filepath: str = "../../data/Posts.xml") -> pd.DataFrame:
     root = tree.getroot()
     data = []
 
-    for post in root.findall('row'):
+    for post in root.findall("row"):
         data.append(post.attrib)
 
     # Convert to a pandas DataFrame
     posts = pd.DataFrame(data)
     posts["Body"] = posts["Body"].apply(html_to_str)
 
-    # Drop rows where column 'Tags' has NaN values
-    posts = posts.dropna(subset=['Tags'])
+    # Drop rows where column "Tags" or "Body" has NaN values
+    posts = posts.dropna(subset=["Tags", "Body"])
+
+    posts = posts[posts.PostTypeId == 1] # important! only real questions, not answers etc.
     return posts
 
 
