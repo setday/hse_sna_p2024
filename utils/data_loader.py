@@ -1,35 +1,21 @@
+import pandas as pd
+import pickle
 import os
 
-import pandas as pd
-
-files = [
-    # "Badges",
-    # "Comments",
-    # "PostHistory",
-    # "PostLinks",
-    "Posts",
-    # "Tags",
-    # "Users",
-    # "Votes",
-]
+def load_dataset(filepath: str = "../data/Posts.xml") -> pd.DataFrame:
+    posts = pd.read_xml(filepath, parser="etree")
+    print("Data loaded")
+    return posts
 
 
-def read_xml(file: str, datapath: str = "data/") -> pd.DataFrame:
-    return pd.read_xml(f"{datapath}{file}.xml")
+def create_X_y(posts, embedder_name: str = "MiniLM3"):
+    file_path = f"../embeddings/{embedder_name}_body.obj"
 
+    if not os.path.exists(file_path):
+        raise FileExistsError("Dump the embeddings first.")
 
-def load_dataset(datapath: str = "data/") -> dict[str, pd.DataFrame]:
-    if not os.path.exists(datapath):
-        print("Data directory not found. Loading data from XML files.")
-        os.system("bash utils/load_data.sh")
+    with open(file_path, 'rb') as file:
+        X = pickle.load(file)
+    y = [str(str_of_tags).split('|')[1:-1] for str_of_tags in posts["Tags"]]
 
-    data = {}
-
-    for file in files:
-        if os.path.exists(f"{datapath}{file}.xml"):
-            data[file] = read_xml(file, datapath)
-            print(f"Loaded {file}.xml")
-        else:
-            print(f"File {file}.xml not found in loaded data.")
-
-    return data
+    return X, y
