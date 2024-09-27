@@ -20,7 +20,7 @@ class TagPredictorNN(nn.Module):
         x = torch.sigmoid(self.fc4(x))
         return x
 
-    def training_loop(self, dataloader, num_epochs=50, verbose: bool = True):
+    def training_loop(self, dataloader, num_epochs=50, device: str = "cpu", verbose: bool = True):
         loss_fn = nn.BCELoss()
         optimizer = optim.Adam(self.parameters(), lr=0.001)
 
@@ -28,6 +28,7 @@ class TagPredictorNN(nn.Module):
             self.train()
             running_loss = 0.0
             for inputs, labels in dataloader:
+                inputs, labels = inputs.to(device), labels.to(device)  # Move to GPU (if available)
                 optimizer.zero_grad()
 
                 # Forward pass
@@ -44,7 +45,7 @@ class TagPredictorNN(nn.Module):
                     f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/10:.4f}')
             running_loss = 0.0
 
-    def evaluate(self, data_loader, threshold=0.5):
+    def evaluate(self, data_loader, threshold=0.5, device: str = "cpu"):
         self.eval()
 
         all_y_true = []
@@ -52,8 +53,7 @@ class TagPredictorNN(nn.Module):
 
         with torch.no_grad():
             for X_batch, y_batch in data_loader:
-                X_batch = X_batch.float()
-                y_batch = y_batch.float()
+                X_batch, y_batch = X_batch.float().to(device), y_batch.float().to(device)  # Move to GPU (if available)
 
                 # Forward pass
                 y_pred = self(X_batch)

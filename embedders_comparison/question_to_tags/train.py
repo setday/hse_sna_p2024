@@ -3,12 +3,13 @@ from dataset import QuestionTagDataset
 from model import TagPredictorNN
 from sklearn.utils import shuffle
 from torch.utils.data import DataLoader
+import torch
 from sklearn.preprocessing import MultiLabelBinarizer
 from tqdm import tqdm
 tqdm.pandas()
 
 
-def train_and_evaluate_model(embedder_name: str = "MiniLM3"):
+def train_and_evaluate_model(embedder_name: str = "MiniLM3", epochs: int = 20) -> None:
     print("Preparing data...")
 
     X, y = create_X_y(filepath="../../data/Posts.xml", embedder_name=embedder_name)
@@ -32,17 +33,33 @@ def train_and_evaluate_model(embedder_name: str = "MiniLM3"):
     input_size = X_train.shape[1]  # input dimension
     num_tags = len(list(set([x for xs in y for x in xs])))  # output dimension
 
-    model = TagPredictorNN(input_size, num_tags)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"device: {device}")
+    model = TagPredictorNN(input_size, num_tags).to(device)
+
     # TRAINING
     print("Training...")
-    model.training_loop(train_loader, num_epochs=2, verbose=True)
+    model.training_loop(train_loader, num_epochs=epochs, device=device, verbose=True)
     print("Model evaluation...")
     # EVALUATION
     print("===TEST===")
-    model.evaluate(test_loader)
+    model.evaluate(test_loader, threshold=0.5, device=device)
     print("===TRAIN===")
-    model.evaluate(train_loader)
+    model.evaluate(train_loader, threshold=0.5, device=device)
 
 
 if __name__ == "__main__":
-    train_and_evaluate_model(embedder_name="MiniLM3")
+    train_and_evaluate_model(embedder_name="MiniLM3", epochs=23)
+
+# Epoch [23/23], Loss: 0.3460
+
+# ===TEST===
+# Jaccard Index: 0.2904
+# Precision: 0.5540
+# Recall: 0.3341
+# F1 Score: 0.3871
+# ===TRAIN===
+# Jaccard Index: 0.3748
+# Precision: 0.6714
+# Recall: 0.4134
+# F1 Score: 0.4808

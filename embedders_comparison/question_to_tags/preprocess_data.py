@@ -27,6 +27,8 @@ def parse_dataset(filepath: str = "../../data/Posts.xml") -> pd.DataFrame:
     posts = pd.DataFrame(data)
     posts["Body"] = posts["Body"].apply(html_to_str)
 
+    # Drop rows where column 'Tags' has NaN values
+    posts = posts.dropna(subset=['Tags'])
     return posts
 
 
