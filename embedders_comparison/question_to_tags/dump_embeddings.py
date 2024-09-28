@@ -18,7 +18,7 @@ def dump_embeddings(models: dict[str, str], dataset: pd.DataFrame, column_name: 
 
     for model_pretty_name, model_official_name in models.items():
         print(model_pretty_name, model_official_name)
-        embeddings_file = Path(f"embeddings/{model_pretty_name}_{column_name.lower()}.obj")
+        embeddings_file = Path(f"../embeddings/{model_pretty_name}_{column_name.lower()}.obj")
         if embeddings_file.is_file():
             print(f"Embeddings for {model_pretty_name} are already dumped.")
             continue
@@ -39,5 +39,5 @@ def dump_embeddings(models: dict[str, str], dataset: pd.DataFrame, column_name: 
 
 if __name__ == "__main__":
     print("Loading data...")
-    posts = load_dataset(filepath="../data/Posts.xml") # TODO: use better loader (i.e. preprocessed)
+    posts = load_dataset(filepath="../../data/Posts.xml") # TODO: use better loader (i.e. preprocessed)
     dump_embeddings(models=EMBEDDERS, dataset=posts)

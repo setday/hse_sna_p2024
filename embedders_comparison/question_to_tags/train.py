@@ -1,10 +1,16 @@
-from preprocess_data import create_X_y
+import sys
+sys.path.append("..\..")
+
+from utils.data_loader import create_X_y
 from dataset import QuestionTagDataset
 from model import TagPredictorNN
+
 from sklearn.utils import shuffle
+from sklearn.preprocessing import MultiLabelBinarizer
+
 from torch.utils.data import DataLoader
 import torch
-from sklearn.preprocessing import MultiLabelBinarizer
+
 from tqdm import tqdm
 tqdm.pandas()
 
@@ -50,16 +56,3 @@ def train_and_evaluate_model(embedder_name: str = "MiniLM3", epochs: int = 20) -
 
 if __name__ == "__main__":
     train_and_evaluate_model(embedder_name="MiniLM3", epochs=23)
-
-# Epoch [23/23], Loss: 0.3460
-
-# ===TEST===
-# Jaccard Index: 0.2904
-# Precision: 0.5540
-# Recall: 0.3341
-# F1 Score: 0.3871
-# ===TRAIN===
-# Jaccard Index: 0.3748
-# Precision: 0.6714
-# Recall: 0.4134
-# F1 Score: 0.4808
