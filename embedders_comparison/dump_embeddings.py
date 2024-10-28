@@ -8,6 +8,8 @@ from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 import chromadb
 
+import pandas as pd
+
 from question_to_tags.preprocess_data import parse_dataset
 
 sys.path.append("..")
@@ -44,31 +46,34 @@ def dump_embeddings(
     # Download a model from Hugging Face using its name and move it to the appropriate device
     embedder = SentenceTransformer(embedder_model).to(device)
 
-    X = []
-    for body in tqdm(data_list, desc="Encoding posts"):
+    data_to_df = []
+    for idx, body in tqdm(enumerate(data_list), desc="Encoding posts"):
         # Encode each 'body' and append it to X
         encoded_body = embedder.encode(
             body, device=device
         )  # Move the input to the GPU (if available)
-        X.append(encoded_body)
+        data_to_df.append({"ParentId": data_ids[idx], "Encoded": encoded_body})
 
-    X_np = np.array(X)
+    data_df = pd.DataFrame(data_to_df)
+
+    X = data_df["Encoded"].tolist()
+    # X_np = np.array(X)
     with open(embeddings_file, "wb") as filehandler:
-        pickle.dump(X_np, filehandler)
+        pickle.dump(X, filehandler)
 
-    chroma_client = chromadb.PersistentClient(path=PATH_TO_EMBEDDINGS_DB)
-    body_collection = chroma_client.create_collection(
-        PATH_TO_EMBEDDING_FILE_TEMPLETE.format(
-            model_name=embedder_pretty_name, data_name=data_name
-        )
-    )
-    for index, embedding in enumerate(X):
-        body_collection.add(
-            ids=[data_ids[index]],
-            documents=[],
-            embeddings=[embedding],
-            metadatas=[{"model": embedder_pretty_name, "id": data_ids[index]}],
-        )
+    # chroma_client = chromadb.PersistentClient(path=PATH_TO_EMBEDDINGS_DB)
+    # body_collection = chroma_client.create_collection(
+    #     PATH_TO_EMBEDDING_FILE_TEMPLETE.format(
+    #         model_name=embedder_pretty_name, data_name=data_name
+    #     )
+    # )
+    # for index, embedding in enumerate(X):
+    #     body_collection.add(
+    #         ids=[data_ids[index]],
+    #         documents=[],
+    #         embeddings=[embedding],
+    #         metadatas=[{"model": embedder_pretty_name, "id": data_ids[index]}],
+    #     )
 
 
 def try_dump_embeddings(
