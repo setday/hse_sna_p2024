@@ -10,8 +10,6 @@ class SolverPredictor(CatBoostClassifier):
         super().__init__(iterations=max_iter, loss_function='MultiClass', random_seed=113, task_type='GPU')
 
     def evaluate(self, X_test, y_test):
-        self.eval()
-
         all_y_true = []
         all_y_pred = []
 
@@ -19,7 +17,7 @@ class SolverPredictor(CatBoostClassifier):
             y_pred = self.predict(x)
 
             all_y_pred.append(y_pred)
-            all_y_true.append(y_pred if y_pred in y else y[0])
+            all_y_true.append(y)
 
         accuracy = accuracy_score(all_y_true, all_y_pred)
 

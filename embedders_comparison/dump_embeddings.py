@@ -1,5 +1,6 @@
 import sys
 import pickle
+import json
 from pathlib import Path
 
 import torch
@@ -12,11 +13,7 @@ import pandas as pd
 
 from question_to_tags.preprocess_data import parse_dataset
 
-sys.path.append("..")
-
-from utils.consts import EMBEDDERS
-
-# PATH_TO_EMBEDDERS_LIST = "embedders_list.json"
+PATH_TO_EMBEDDERS_LIST = "embedders_list.json"
 PATH_TO_DATASET_POSTS = "../data/Posts.xml"
 PATH_TO_EMBEDDINGS = "embeddings/"
 PATH_TO_EMBEDDINGS_DB = "embeddings_db/"
@@ -47,19 +44,20 @@ def dump_embeddings(
     embedder = SentenceTransformer(embedder_model).to(device)
 
     data_to_df = []
-    for idx, body in tqdm(enumerate(data_list), desc="Encoding posts"):
+    for idx, body in tqdm(zip(data_ids, data_list), total=len(data_list), desc="Encoding posts"):
         # Encode each 'body' and append it to X
         encoded_body = embedder.encode(
             body, device=device
         )  # Move the input to the GPU (if available)
-        data_to_df.append({"ParentId": data_ids[idx], "Encoded": encoded_body})
+        data_to_df.append({"ParentId": idx, "Encoded": encoded_body})
 
     data_df = pd.DataFrame(data_to_df)
 
-    X = data_df["Encoded"].tolist()
-    # X_np = np.array(X)
     with open(embeddings_file, "wb") as filehandler:
-        pickle.dump(X, filehandler)
+        pickle.dump(data_df, filehandler)
+
+    # X = data_df["Encoded"].tolist()
+    # X_np = np.array(X)
 
     # chroma_client = chromadb.PersistentClient(path=PATH_TO_EMBEDDINGS_DB)
     # body_collection = chroma_client.create_collection(
@@ -105,12 +103,17 @@ def get_optimal_device():
 
 
 def get_embedders_list():
-    # with open(PATH_TO_EMBEDDERS_LIST, "r") as file:
-    #     embedders_list = json.load(file)
-    return EMBEDDERS
+    with open(PATH_TO_EMBEDDERS_LIST, "r") as file:
+        embedders_list = json.load(file)
+    return embedders_list
 
 
 if __name__ == "__main__":
+    truncate_10k = len(sys.argv) > 1 and sys.argv[1] == "truncate_10k"
+
+    if truncate_10k:
+        print("Attention: Debug truncation is enabled. Only 10'000 posts will be processed!")
+
     print("Loading embedders list...")
     embedders_list = get_embedders_list()
 
@@ -129,6 +132,10 @@ if __name__ == "__main__":
 
     bodies = posts["Body"].tolist()
     data_ids = posts["Id"].tolist()
+
+    if truncate_10k:
+        bodies = bodies[:10000]
+        data_ids = data_ids[:10000]
 
     for model_pretty_name, model_name in embedders_list.items():
         try_dump_embeddings(

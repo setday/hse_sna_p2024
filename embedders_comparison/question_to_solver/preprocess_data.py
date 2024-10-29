@@ -93,25 +93,33 @@ def create_multytraget_X_y(filepath: str, embedder_name: str) -> tuple[Any, list
             X: pd.DataFrame = pickle.load(file)
     else:
         raise FileExistsError("Dump the embeddings first.")
+    
+    X = X.astype({"ParentId": int})
 
-    # questions, answers = parse_datasets(filepath)
-    with open("tmp_q_a.pkl", "rb") as f:
-        questions, answers = pickle.load(f)
+    questions, answers = parse_datasets(filepath)
+    # with open("tmp_q_a.pkl", "wb") as f:
+    #     pickle.dump((questions, answers), f)
+    # with open("tmp_q_a.pkl", "rb") as f:
+    #     questions, answers = pickle.load(f)
 
-    answers.join(X, on="ParentId", rsuffix="Question")
+    answers = answers.join(X, on="ParentId", rsuffix="Question")
 
     # Apply softmax to the scores to find the probability of being the best writer for the question
     answers["Probability"] = answers.groupby("ParentId")["Score"].transform(softmax)
     answers.loc[answers.Score < 0, "Probability"] = 0.0
     answers.loc[answers.IsAcceptedAnswer, "Probability"] = 1.0
 
-    Xq = answers["EncodedQuestion"].tolist()
+    answers = answers.dropna()
+
+    Xq = answers["Encoded"].tolist()
     Xa = answers["OwnerUserId"].tolist()
 
-    X = np.dstack([Xq, Xa])
+    Xq_np = np.array(Xq)
+    Xa_np = np.array([Xa])
+
+    X = np.concatenate((Xq_np, Xa_np.T), axis=1)
     y = answers["Probability"].tolist()
 
-    # return X, y
     return X, y
 
 
@@ -125,19 +133,22 @@ def create_besttraget_X_y(filepath: str, embedder_name: str) -> tuple[Any, list[
     else:
         raise FileExistsError("Dump the embeddings first.")
 
-    # questions, answers = parse_datasets(filepath)
-    with open("tmp_q_a.pkl", "rb") as f:
-        questions, answers = pickle.load(f)
+    X = X.astype({"ParentId": int})
 
-    answers.join(X, on="ParentId", rsuffix="Question")
+    questions, answers = parse_datasets(filepath)
+    # with open("tmp_q_a.pkl", "wb") as f:
+    #     pickle.dump((questions, answers), f)
+    # with open("tmp_q_a.pkl", "rb") as f:
+        # questions, answers = pickle.load(f)
+
+    answers = answers.join(X, on="ParentId", rsuffix="Question")
 
     # Apply softmax to the scores to find the probability of being the best writer for the question
     answers.loc[answers.IsAcceptedAnswer, "Score"] = 9999999999
     idx_max = answers.groupby("ParentId")["Score"].idxmax()
-    answers = answers.loc[idx_max]
+    answers = answers.loc[idx_max].dropna()
 
-    X = answers["EncodedQuestion"].tolist()
+    X = answers["Encoded"].tolist()
     y = answers["OwnerUserId"].tolist()
 
-    # return X, y
     return X, y
