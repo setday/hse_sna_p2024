@@ -1,5 +1,7 @@
 import sys
 
+import click
+
 from tqdm import tqdm
 
 from sklearn.model_selection import train_test_split
@@ -55,6 +57,8 @@ def train_and_evaluate_besttarget_model(
     print("===TRAIN===")
     model.evaluate(X_train, y_train)
 
+    return model
+
 
 def train_and_evaluate_multytarget_model(
     embedder_name: str, dataset_path: str, truncate_100: bool = False
@@ -100,33 +104,34 @@ def train_and_evaluate_multytarget_model(
     print("===TRAIN===")
     model.evaluate(train_loader, device=device)
 
+    return model
+
+
+@click.command()
+@click.option("--target", help="use 'best' target to train the model that predicts the best answer / use 'multy' target to train the model that predicts the probability of solver to answer the question")
+@click.option("--embedder", default="MiniLM3", help="the name of the embedder to be used")
+@click.option("--truncate_100", is_flag=True, help="truncate the dataset to 100 posts")
+@click.option("--save_model", is_flag=True, help="save the model")
+def main(target, embedder, truncate_100, save_model):
+    if not target or target not in ["best", "multy"]: # check if the target is valid
+        print("Invalid target. Use 'best' or 'multy'")
+        sys.exit(1)
+
+    model = (
+        train_and_evaluate_besttarget_model
+        if target == "best"
+        else train_and_evaluate_multytarget_model
+    ) (
+        embedder_name=embedder,
+        dataset_path=PATH_TO_DATASET_POSTS,
+        truncate_100=truncate_100,
+    )
+    if save_model:
+        torch.save(model, f"{embedder}_{target}_model.pth")
+
 
 if __name__ == "__main__":
-    mode = "best_target"
-
-    if "best_target" in sys.argv:
-        mode = "best_target"
-    elif "multy_target" in sys.argv:
-        mode = "multy_target"
-
-    truncate_100 = "truncate_100" in sys.argv
-    if truncate_100:
-        print(
-            "Attention: Debug truncation is enabled. Only 100 posts will be processed!"
-        )
-
-    if mode == "best_target":
-        train_and_evaluate_besttarget_model(
-            embedder_name="MiniLM3",
-            dataset_path=PATH_TO_DATASET_POSTS,
-            truncate_100=truncate_100,
-        )
-    elif mode == "multy_target":
-        train_and_evaluate_multytarget_model(
-            embedder_name="MiniLM3",
-            dataset_path=PATH_TO_DATASET_POSTS,
-            truncate_100=truncate_100,
-        )
+    main()
 
 # Epoch [23/23], Loss: 0.3460
 

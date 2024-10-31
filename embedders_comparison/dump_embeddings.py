@@ -1,6 +1,9 @@
 import sys
 import pickle
 import json
+
+import click
+
 from pathlib import Path
 
 import torch
@@ -108,16 +111,18 @@ def get_embedders_list():
     return embedders_list
 
 
-if __name__ == "__main__":
-    truncate_10k = len(sys.argv) > 1 and sys.argv[1] == "truncate_10k"
-
+@click.command()
+@click.option("--embedder", default=None, help="the name of the embedder to be used (if None, all embedders from embedders_list.json will be used)")
+@click.option("--truncate_10k", is_flag=True, help="truncate the dataset to 10'000 posts")
+def main(embedder, truncate_10k):
     if truncate_10k:
-        print(
-            "Attention: Debug truncation is enabled. Only 10'000 posts will be processed!"
-        )
+        print("Attention: Debug truncation is enabled. Only 10'000 posts will be processed!")
 
     print("Loading embedders list...")
-    embedders_list = get_embedders_list()
+    if embedder is None:
+        embedders_list = get_embedders_list()
+    else:
+        embedders_list = {embedder: embedder}
 
     print("Loading data...")
     posts = parse_dataset(filepath=PATH_TO_DATASET_POSTS)
@@ -148,3 +153,7 @@ if __name__ == "__main__":
             model_pretty_name=model_pretty_name,
             device=device,
         )
+
+
+if __name__ == "__main__":
+    main()
