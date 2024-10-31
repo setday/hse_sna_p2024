@@ -33,10 +33,7 @@ def load_dataset(filepath: str) -> pd.DataFrame:
     root = tree.getroot()
 
     print("Extracting data...")
-    data = [
-        post.attrib
-        for post in root.findall("row")
-    ]
+    data = [post.attrib for post in root.findall("row")]
 
     # Convert to a pandas DataFrame
     posts = pd.DataFrame(data)
@@ -62,7 +59,7 @@ def parse_datasets(filepath: str) -> pd.DataFrame:
 
     # Drop answers with no parent question or without an owner or without a score
     answers = answers.dropna(subset=["ParentId", "OwnerUserId", "Score"])
-    
+
     answers["IsAcceptedAnswer"] = answers["Id"].isin(questions["AcceptedAnswerId"])
 
     # Keep only
@@ -74,9 +71,7 @@ def parse_datasets(filepath: str) -> pd.DataFrame:
     # IsAcceptedAnswer (for best preferrence matching)
     # ParentId (for question-answer matching)
     # OwnerUserId (for user-based recommendation)
-    questions = questions[["Id", "Body"]].astype(
-        {"Id": int, "Body": str}
-    )
+    questions = questions[["Id", "Body"]].astype({"Id": int, "Body": str})
     answers = answers[["Score", "IsAcceptedAnswer", "ParentId", "OwnerUserId"]].astype(
         {"Score": int, "IsAcceptedAnswer": bool, "ParentId": int, "OwnerUserId": int}
     )
@@ -84,7 +79,9 @@ def parse_datasets(filepath: str) -> pd.DataFrame:
     return questions, answers
 
 
-def create_multytraget_X_y(filepath: str, embedder_name: str) -> tuple[Any, list[list[str]]]:
+def create_multytraget_X_y(
+    filepath: str, embedder_name: str
+) -> tuple[Any, list[list[str]]]:
     file_path = PATH_TO_EMBEDDINGS_TEMPLATE.format(
         model_name=embedder_name, data_name="bodies"
     )
@@ -93,7 +90,7 @@ def create_multytraget_X_y(filepath: str, embedder_name: str) -> tuple[Any, list
             X: pd.DataFrame = pickle.load(file)
     else:
         raise FileExistsError("Dump the embeddings first.")
-    
+
     X = X.astype({"ParentId": int})
 
     questions, answers = parse_datasets(filepath)
@@ -123,7 +120,9 @@ def create_multytraget_X_y(filepath: str, embedder_name: str) -> tuple[Any, list
     return X, y
 
 
-def create_besttraget_X_y(filepath: str, embedder_name: str) -> tuple[Any, list[list[str]]]:
+def create_besttraget_X_y(
+    filepath: str, embedder_name: str
+) -> tuple[Any, list[list[str]]]:
     file_path = PATH_TO_EMBEDDINGS_TEMPLATE.format(
         model_name=embedder_name, data_name="bodies"
     )
@@ -139,7 +138,7 @@ def create_besttraget_X_y(filepath: str, embedder_name: str) -> tuple[Any, list[
     # with open("tmp_q_a.pkl", "wb") as f:
     #     pickle.dump((questions, answers), f)
     # with open("tmp_q_a.pkl", "rb") as f:
-        # questions, answers = pickle.load(f)
+    # questions, answers = pickle.load(f)
 
     answers = answers.join(X, on="ParentId", rsuffix="Question")
 

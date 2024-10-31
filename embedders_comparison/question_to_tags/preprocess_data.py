@@ -8,6 +8,8 @@ import pandas as pd
 from lxml.etree import XMLParser, parse
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 
+import swifter
+
 
 PATH_TO_EMBEDDINGS_TEMPLATE = "../embeddings/{model_name}_{data_name}.obj"
 

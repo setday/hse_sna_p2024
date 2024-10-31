@@ -7,7 +7,12 @@ from catboost import CatBoostClassifier
 
 class SolverPredictor(CatBoostClassifier):
     def __init__(self, max_iter: int = 1000):
-        super().__init__(iterations=max_iter, loss_function='MultiClass', random_seed=113, task_type='GPU')
+        super().__init__(
+            iterations=max_iter,
+            loss_function="MultiClass",
+            random_seed=113,
+            task_type="GPU",
+        )
 
     def evaluate(self, X_test, y_test):
         all_y_true = []

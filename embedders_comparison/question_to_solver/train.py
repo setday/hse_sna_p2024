@@ -85,7 +85,7 @@ def train_and_evaluate_multytarget_model(
     test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
     input_size = X_train.shape[1]  # input dimension
-    
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     model = SolverEvaluator(input_size).to(device)
@@ -103,15 +103,17 @@ def train_and_evaluate_multytarget_model(
 
 if __name__ == "__main__":
     mode = "best_target"
-    
+
     if "best_target" in sys.argv:
         mode = "best_target"
     elif "multy_target" in sys.argv:
         mode = "multy_target"
-        
+
     truncate_100 = "truncate_100" in sys.argv
     if truncate_100:
-        print("Attention: Debug truncation is enabled. Only 100 posts will be processed!")
+        print(
+            "Attention: Debug truncation is enabled. Only 100 posts will be processed!"
+        )
 
     if mode == "best_target":
         train_and_evaluate_besttarget_model(

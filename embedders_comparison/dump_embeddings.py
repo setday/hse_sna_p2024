@@ -4,10 +4,8 @@ import json
 from pathlib import Path
 
 import torch
-import numpy as np
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
-import chromadb
 
 import pandas as pd
 
@@ -44,7 +42,9 @@ def dump_embeddings(
     embedder = SentenceTransformer(embedder_model).to(device)
 
     data_to_df = []
-    for idx, body in tqdm(zip(data_ids, data_list), total=len(data_list), desc="Encoding posts"):
+    for idx, body in tqdm(
+        zip(data_ids, data_list), total=len(data_list), desc="Encoding posts"
+    ):
         # Encode each 'body' and append it to X
         encoded_body = embedder.encode(
             body, device=device
@@ -112,7 +112,9 @@ if __name__ == "__main__":
     truncate_10k = len(sys.argv) > 1 and sys.argv[1] == "truncate_10k"
 
     if truncate_10k:
-        print("Attention: Debug truncation is enabled. Only 10'000 posts will be processed!")
+        print(
+            "Attention: Debug truncation is enabled. Only 10'000 posts will be processed!"
+        )
 
     print("Loading embedders list...")
     embedders_list = get_embedders_list()

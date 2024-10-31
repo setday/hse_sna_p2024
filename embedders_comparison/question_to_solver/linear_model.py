@@ -73,16 +73,16 @@ class SolverEvaluator(nn.Module):
 
                 all_y_pred.append(outputs)
                 all_y_true.append(probabilities)
-        
+
         # Concatenate all batches
         all_y_pred_np = np.concatenate(all_y_pred)
         all_y_true_np = np.concatenate(all_y_true)
 
         # Compute metrics
-        cross_entropy = nn.CrossEntropyLoss()(torch.tensor(all_y_pred_np), torch.tensor(all_y_true_np))
-        r2 = r2_score(
-            all_y_true_np, all_y_pred_np
+        cross_entropy = nn.CrossEntropyLoss()(
+            torch.tensor(all_y_pred_np), torch.tensor(all_y_true_np)
         )
+        r2 = r2_score(all_y_true_np, all_y_pred_np)
         brier_score = np.mean(np.square(all_y_true_np - all_y_pred_np))
 
         print(f"Cross entropy: {cross_entropy:.4f}")
