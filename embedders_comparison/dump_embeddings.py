@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 import pandas as pd
 
-from question_to_tags.preprocess_data import parse_dataset
+from question_to_solver.preprocess_data import parse_datasets
 
 PATH_TO_EMBEDDERS_LIST = "embedders_list.json"
 PATH_TO_DATASET_POSTS = "../data/Posts.xml"
@@ -42,6 +42,7 @@ def dump_embeddings(
         raise FileExistsError("Embeddings are already dumped.")
 
     # Download a model from Hugging Face using its name and move it to the appropriate device
+    print(embedder_model)
     embedder = SentenceTransformer(embedder_model).to(device)
 
     data_to_df = []
@@ -119,13 +120,12 @@ def main(embedder, truncate_10k):
         print("Attention: Debug truncation is enabled. Only 10'000 posts will be processed!")
 
     print("Loading embedders list...")
-    if embedder is None:
-        embedders_list = get_embedders_list()
-    else:
-        embedders_list = {embedder: embedder}
+    embedders_list = get_embedders_list()
+    if embedder is not None:
+        embedders_list = {embedder: embedders_list[embedder]}
 
     print("Loading data...")
-    posts = parse_dataset(filepath=PATH_TO_DATASET_POSTS)
+    questions, answers = parse_datasets(filepath=PATH_TO_DATASET_POSTS)
 
     print("Choosing device...")
     # Check if CUDA is available
@@ -137,8 +137,8 @@ def main(embedder, truncate_10k):
     Path(PATH_TO_EMBEDDINGS).mkdir(parents=True, exist_ok=True)
     Path(PATH_TO_EMBEDDINGS_DB).mkdir(parents=True, exist_ok=True)
 
-    bodies = posts["Body"].tolist()
-    data_ids = posts["Id"].tolist()
+    bodies = questions["Body"].tolist()
+    data_ids = questions["Id"].tolist()
 
     if truncate_10k:
         bodies = bodies[:10000]

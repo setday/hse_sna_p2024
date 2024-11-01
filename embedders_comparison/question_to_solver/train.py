@@ -1,4 +1,5 @@
 import sys
+import json
 
 import click
 
@@ -9,9 +10,11 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader
 
+import lightning as L
+
 from preprocess_data import create_multytraget_X_y, create_besttraget_X_y
 from boost_model import SolverPredictor
-from linear_model import SolverEvaluator
+from linear_model import SolverEvaluatorLightningModule as SolverEvaluator
 
 from dataset import QuestionSolverDataset
 
@@ -21,6 +24,7 @@ RANDOM_STATE = 1200
 SPLIT_RATIO = 0.8
 
 PATH_TO_DATASET_POSTS = "../../data/Posts.xml"
+PATH_TO_EMBEDDERS_LIST = "../embedders_list.json"
 
 tqdm.pandas()
 
@@ -92,12 +96,14 @@ def train_and_evaluate_multytarget_model(
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    model = SolverEvaluator(input_size).to(device)
+    model = SolverEvaluator(input_size)
 
     # TRAINING
     print("Training...")
-    model.training_loop(train_loader, num_epochs=epochs, device=device, verbose=True)
+    trainer = L.Trainer(accelerator="auto", max_epochs=epochs, enable_progress_bar=False, logger=False)
+    trainer.fit(model, train_loader, test_loader)
     print("Model evaluation...")
+    model = model.model.to(device)
     # EVALUATION
     print("===TEST===")
     model.evaluate(test_loader, device=device)
@@ -105,6 +111,12 @@ def train_and_evaluate_multytarget_model(
     model.evaluate(train_loader, device=device)
 
     return model
+
+
+def get_embedders_list():
+    with open(PATH_TO_EMBEDDERS_LIST, "r") as file:
+        embedders_list = json.load(file)
+    return embedders_list
 
 
 @click.command()
@@ -117,17 +129,29 @@ def main(target, embedder, truncate_100, save_model):
         print("Invalid target. Use 'best' or 'multy'")
         sys.exit(1)
 
-    model = (
+    print("Loading embedders list...")
+    if embedder is None:
+        embedders_list = get_embedders_list().keys()
+    else:
+        embedders_list = [embedder]
+
+    train_eval_fn = (
         train_and_evaluate_besttarget_model
         if target == "best"
         else train_and_evaluate_multytarget_model
-    ) (
-        embedder_name=embedder,
-        dataset_path=PATH_TO_DATASET_POSTS,
-        truncate_100=truncate_100,
     )
-    if save_model:
-        torch.save(model, f"{embedder}_{target}_model.pth")
+    
+    for embedder in embedders_list:
+        print(f"Training model for {embedder}...")
+
+        model = train_eval_fn(
+            embedder_name=embedder,
+            dataset_path=PATH_TO_DATASET_POSTS,
+            truncate_100=truncate_100,
+        )
+        
+        if save_model:
+            torch.save(model, f"{embedder}_{target}_model.pth")
 
 
 if __name__ == "__main__":

@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import lightning as L
+
 import numpy as np
 
 from sklearn.metrics import r2_score, root_mean_squared_error
@@ -24,35 +26,6 @@ class SolverEvaluator(nn.Module):
         x = torch.relu(self.fc4(x))
         x = torch.sigmoid(self.fc5(x))
         return x
-
-    def training_loop(
-        self, data_loader, num_epochs=50, device: str = "cpu", verbose: bool = True
-    ):
-        loss_fn = nn.BCELoss()
-        optimizer = optim.Adam(self.parameters(), lr=0.001)
-
-        for epoch in range(num_epochs):
-            self.train()
-            running_loss = 0.0
-            for inputs, probabilities in data_loader:
-                inputs, probabilities = (
-                    inputs.to(device),
-                    probabilities.to(device),
-                )  # Move to GPU (if available)
-                optimizer.zero_grad()
-
-                # Forward pass
-                outputs = self(inputs).flatten()
-                loss = loss_fn(outputs, probabilities)
-
-                # Backward pass and optimize
-                loss.backward()
-                optimizer.step()
-
-                running_loss += loss.item()
-            if verbose and epoch % 100 == 0:
-                print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/10:.4f}")
-            running_loss = 0.0
 
     def evaluate(self, data_loader, device: str = "cpu"):
         self.eval()
@@ -84,7 +57,68 @@ class SolverEvaluator(nn.Module):
         )
         r2 = r2_score(all_y_true_np, all_y_pred_np)
         brier_score = root_mean_squared_error(all_y_true_np, all_y_pred_np)
+        l1 = nn.L1Loss()(torch.tensor(all_y_pred_np), torch.tensor(all_y_true_np))
 
         print(f"Cross entropy: {cross_entropy:.4f}")
         print(f"R2 Score: {r2:.4f}")
         print(f"root MSE: {brier_score:.4f}")
+        print(f"L1 Loss: {l1:.4f}")
+
+
+class SolverEvaluatorLightningModule(L.LightningModule):
+    def __init__(self, input_size):
+        super().__init__()
+
+        self.model = SolverEvaluator(input_size)
+        self.loss_fn = nn.BCELoss()
+
+        self.val_loss = []
+        
+        self.train_loss = []
+        self.valid_accs = []
+
+        self.lr = 1e-3
+
+    
+    def set_lr(self, lr):
+        self.lr = lr
+
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        p = self.model(x).flatten()
+        loss = self.loss_fn(p, y)
+        self.train_loss.append(loss.detach())
+        return loss
+
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        p = self.model(x).flatten()
+        loss = self.loss_fn(p, y)
+        self.valid_accs.append(loss.detach())
+        return {}
+
+
+    def configure_optimizers(self):
+        return optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=1e-4)
+
+
+    def on_train_epoch_end(self):
+        epoch_loss = torch.stack(self.train_loss).mean()
+        print(
+            f"Epoch {self.trainer.current_epoch},",
+            f"train_loss: {epoch_loss.item():.8f}",
+        )
+        # don't forget to clear the saved losses
+        self.train_loss.clear()
+
+
+    def on_validation_epoch_end(self):
+        epoch_accs = torch.tensor(self.valid_accs).float().mean()
+        print(
+            f"Epoch {self.trainer.current_epoch},",
+            f"valid_accs: {epoch_accs.item():.8f}",
+        )
+        # don't forget to clear the saved accuracies
+        self.valid_accs.clear()

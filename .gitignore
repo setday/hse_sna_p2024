@@ -170,3 +170,5 @@ cython_debug/
 #.idea/
 
 catboost_info/
+
+lightning_logs/

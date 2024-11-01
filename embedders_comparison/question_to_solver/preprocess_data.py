@@ -41,6 +41,14 @@ def load_dataset(filepath: str) -> pd.DataFrame:
 
 
 def parse_datasets(filepath: str) -> pd.DataFrame:
+    path_to_file = os.path.dirname(filepath)
+
+    if os.path.exists(f"{path_to_file}/dataset_cache/q_an_a.pkl"):
+        print ("ATTENTION: Found cached result of parse_datasets function! If you have changed the dataset or the preprocessing logic, please remove the cache file for dataset_cache!")
+
+        with open(f"{path_to_file}/dataset_cache/q_an_a.pkl", "rb") as f:
+            return pickle.load(f)
+
     # Parse the XML file
     posts = load_dataset(filepath)
 
@@ -75,6 +83,11 @@ def parse_datasets(filepath: str) -> pd.DataFrame:
     answers = answers[["Score", "IsAcceptedAnswer", "ParentId", "OwnerUserId"]].astype(
         {"Score": int, "IsAcceptedAnswer": bool, "ParentId": int, "OwnerUserId": int}
     )
+
+    if not os.path.exists(f"{path_to_file}/dataset_cache"):
+        os.makedirs(f"{path_to_file}/dataset_cache")
+    with open(f"{path_to_file}/dataset_cache/q_an_a.pkl", "wb") as f:
+        pickle.dump((questions, answers), f)
 
     return questions, answers
 
