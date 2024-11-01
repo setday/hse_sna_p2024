@@ -4,7 +4,7 @@ import torch.optim as optim
 
 import numpy as np
 
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, root_mean_squared_error
 
 
 class SolverEvaluator(nn.Module):
@@ -83,8 +83,8 @@ class SolverEvaluator(nn.Module):
             torch.tensor(all_y_pred_np), torch.tensor(all_y_true_np)
         )
         r2 = r2_score(all_y_true_np, all_y_pred_np)
-        brier_score = np.mean(np.square(all_y_true_np - all_y_pred_np))
+        brier_score = root_mean_squared_error(all_y_true_np, all_y_pred_np)
 
         print(f"Cross entropy: {cross_entropy:.4f}")
         print(f"R2 Score: {r2:.4f}")
-        print(f"Brier Score: {brier_score:.4f}")
+        print(f"root MSE: {brier_score:.4f}")
