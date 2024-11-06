@@ -4,6 +4,7 @@ import warnings
 
 from typing import Any
 
+import swifter
 import pandas as pd
 import swifter
 from lxml.etree import XMLParser, parse
