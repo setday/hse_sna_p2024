@@ -32,7 +32,6 @@ def load_dataset(filepath: str) -> pd.DataFrame:
     for post in root.findall("row"):
         data.append(post.attrib)
 
-    # Convert to a pandas DataFrame
     posts = pd.DataFrame(data)
     return posts
 

@@ -26,34 +26,28 @@ def html_to_str(row_html: str) -> str:
 def load_dataset(filepath: str) -> pd.DataFrame:
     print(f"INFO: Loading dataset {filepath}...")
 
-    # Parse the XML file
     p = XMLParser(huge_tree=True)
     tree = parse(filepath, parser=p)
-    # Extract elements from the XML tree
     root = tree.getroot()
 
     print("Extracting data...")
     data = [post.attrib for post in root.findall("row")]
 
-    # Convert to a pandas DataFrame
-    posts = pd.DataFrame(data)
-    return posts
+    return pd.DataFrame(data)
 
 
 def parse_datasets(filepath: str) -> pd.DataFrame:
     path_to_file = os.path.dirname(filepath)
 
     if os.path.exists(f"{path_to_file}/dataset_cache/q_an_a.pkl"):
-        print ("ATTENTION: Found cached result of parse_datasets function! If you have changed the dataset or the preprocessing logic, please remove the cache file for dataset_cache!")
+        print("ATTENTION: Found cached result of parse_datasets function! If you have changed the dataset or the preprocessing logic, please remove the cache file from dataset_cache!")
 
         with open(f"{path_to_file}/dataset_cache/q_an_a.pkl", "rb") as f:
             return pickle.load(f)
 
-    # Parse the XML file
     posts = load_dataset(filepath)
 
     print("Preprocessing data...")
-    # Convert the "Body" column from HTML to plain text
     posts["Body"] = posts["Body"].swifter.apply(html_to_str)
 
     # Drop rows where column "Body" has NaN values
@@ -92,25 +86,20 @@ def parse_datasets(filepath: str) -> pd.DataFrame:
     return questions, answers
 
 
-def create_multytraget_X_y(
+def create_multytarget_X_y(
     filepath: str, embedder_name: str
 ) -> tuple[Any, list[list[str]]]:
     file_path = PATH_TO_EMBEDDINGS_TEMPLATE.format(
         model_name=embedder_name, data_name="bodies"
     )
-    if os.path.exists(file_path):
-        with open(file_path, "rb") as file:
-            X: pd.DataFrame = pickle.load(file)
-    else:
+    if not os.path.exists(file_path):
         raise FileExistsError("Dump the embeddings first.")
+    with open(file_path, "rb") as file:
+        X: pd.DataFrame = pickle.load(file)
 
     X = X.astype({"ParentId": int})
 
     questions, answers = parse_datasets(filepath)
-    # with open("tmp_q_a.pkl", "wb") as f:
-    #     pickle.dump((questions, answers), f)
-    # with open("tmp_q_a.pkl", "rb") as f:
-    #     questions, answers = pickle.load(f)
 
     answers = answers.join(X, on="ParentId", rsuffix="Question")
 
@@ -139,23 +128,17 @@ def create_besttraget_X_y(
     file_path = PATH_TO_EMBEDDINGS_TEMPLATE.format(
         model_name=embedder_name, data_name="bodies"
     )
-    if os.path.exists(file_path):
-        with open(file_path, "rb") as file:
-            X: pd.DataFrame = pickle.load(file)
-    else:
+    if not os.path.exists(file_path):
         raise FileExistsError("Dump the embeddings first.")
+    with open(file_path, "rb") as file:
+        X: pd.DataFrame = pickle.load(file)
 
     X = X.astype({"ParentId": int})
 
     questions, answers = parse_datasets(filepath)
-    # with open("tmp_q_a.pkl", "wb") as f:
-    #     pickle.dump((questions, answers), f)
-    # with open("tmp_q_a.pkl", "rb") as f:
-    # questions, answers = pickle.load(f)
 
     answers = answers.join(X, on="ParentId", rsuffix="Question")
 
-    # Apply softmax to the scores to find the probability of being the best writer for the question
     answers.loc[answers.IsAcceptedAnswer, "Score"] = 9999999999
     idx_max = answers.groupby("ParentId")["Score"].idxmax()
     answers = answers.loc[idx_max].dropna()

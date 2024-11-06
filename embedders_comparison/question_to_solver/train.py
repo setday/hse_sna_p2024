@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 import lightning as L
 
-from preprocess_data import create_multytraget_X_y, create_besttraget_X_y
+from preprocess_data import create_multytarget_X_y, create_besttraget_X_y
 from boost_model import SolverPredictor
 from linear_model import SolverEvaluatorLightningModule as SolverEvaluator
 
@@ -71,7 +71,7 @@ def train_and_evaluate_multytarget_model(
 
     epochs = 1000
 
-    X, y = create_multytraget_X_y(filepath=dataset_path, embedder_name=embedder_name)
+    X, y = create_multytarget_X_y(filepath=dataset_path, embedder_name=embedder_name)
 
     if truncate_100:
         X = X[:100]
@@ -125,7 +125,7 @@ def get_embedders_list():
 @click.option("--truncate_100", is_flag=True, help="truncate the dataset to 100 posts")
 @click.option("--save_model", is_flag=True, help="save the model")
 def main(target, embedder, truncate_100, save_model):
-    if not target or target not in ["best", "multy"]: # check if the target is valid
+    if not target or target not in ["best", "multy"]:  # check if the target is valid
         print("Invalid target. Use 'best' or 'multy'")
         sys.exit(1)
 
@@ -140,7 +140,7 @@ def main(target, embedder, truncate_100, save_model):
         if target == "best"
         else train_and_evaluate_multytarget_model
     )
-    
+
     for embedder in embedders_list:
         print(f"Training model for {embedder}...")
 
@@ -149,7 +149,7 @@ def main(target, embedder, truncate_100, save_model):
             dataset_path=PATH_TO_DATASET_POSTS,
             truncate_100=truncate_100,
         )
-        
+
         if save_model:
             torch.save(model, f"{embedder}_{target}_model.pth")
 

@@ -35,23 +35,15 @@ class SolverEvaluator(nn.Module):
 
         with torch.no_grad():
             for inputs, probabilities in data_loader:
-                inputs = inputs.to(device)  # Move to GPU (if available)
-
-                # Forward pass
+                inputs = inputs.to(device)
                 outputs = self(inputs).flatten()
 
-                # Apply threshold to get binary predictions
-                outputs = outputs.cpu().numpy()
-                probabilities = probabilities.numpy()
+                all_y_pred.append(outputs.cpu().numpy())
+                all_y_true.append(probabilities.numpy())
 
-                all_y_pred.append(outputs)
-                all_y_true.append(probabilities)
-
-        # Concatenate all batches
         all_y_pred_np = np.concatenate(all_y_pred)
         all_y_true_np = np.concatenate(all_y_true)
 
-        # Compute metrics
         cross_entropy = nn.CrossEntropyLoss()(
             torch.tensor(all_y_pred_np), torch.tensor(all_y_true_np)
         )
@@ -66,23 +58,20 @@ class SolverEvaluator(nn.Module):
 
 
 class SolverEvaluatorLightningModule(L.LightningModule):
-    def __init__(self, input_size):
+    def __init__(self, input_size, lr=1e-3):
         super().__init__()
 
         self.model = SolverEvaluator(input_size)
         self.loss_fn = nn.BCELoss()
 
         self.val_loss = []
-        
         self.train_loss = []
         self.valid_accs = []
 
-        self.lr = 1e-3
-
-    
-    def set_lr(self, lr):
         self.lr = lr
 
+    def set_lr(self, lr):
+        self.lr = lr
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -91,7 +80,6 @@ class SolverEvaluatorLightningModule(L.LightningModule):
         self.train_loss.append(loss.detach())
         return loss
 
-
     def validation_step(self, batch, batch_idx):
         x, y = batch
         p = self.model(x).flatten()
@@ -99,10 +87,8 @@ class SolverEvaluatorLightningModule(L.LightningModule):
         self.valid_accs.append(loss.detach())
         return {}
 
-
     def configure_optimizers(self):
         return optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=1e-4)
-
 
     def on_train_epoch_end(self):
         epoch_loss = torch.stack(self.train_loss).mean()
@@ -112,7 +98,6 @@ class SolverEvaluatorLightningModule(L.LightningModule):
         )
         # don't forget to clear the saved losses
         self.train_loss.clear()
-
 
     def on_validation_epoch_end(self):
         epoch_accs = torch.tensor(self.valid_accs).float().mean()
