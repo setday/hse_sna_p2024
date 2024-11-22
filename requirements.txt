@@ -10,3 +10,4 @@ sentence-transformers==3.2.1
 click==8.1.7
 lightning==2.4.0
 lightning-utilities==0.11.8
+textstat==0.7.4
