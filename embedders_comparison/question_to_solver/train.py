@@ -23,8 +23,8 @@ RANDOM_STATE = 1200
 
 SPLIT_RATIO = 0.8
 
-PATH_TO_DATASET_POSTS = "../../data/Posts.xml"
-PATH_TO_EMBEDDERS_LIST = "../embedders_list.json"
+PATH_TO_DATASET_POSTS = "./../data/Posts.xml"
+PATH_TO_EMBEDDERS_LIST = "./embedders_list.json"
 
 tqdm.pandas()
 

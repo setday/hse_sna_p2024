@@ -11,7 +11,7 @@ class SolverPredictor(CatBoostClassifier):
             iterations=max_iter,
             loss_function="MultiClass",
             random_seed=113,
-            task_type="GPU",
+            task_type="CPU",
         )
 
     def evaluate(self, X_test, y_test):
