@@ -16,6 +16,8 @@ from scipy.special import softmax
 import numpy as np
 
 
+from utils import metrics
+
 import click
 
 from tqdm import tqdm
@@ -33,7 +35,6 @@ from linear_model import SolverEvaluatorLightningModule as SolverEvaluator
 
 from dataset import QuestionSolverDataset
 PATH_TO_EMBEDDINGS_TEMPLATE = "./embeddings/{model_name}_{data_name}.obj"
-
 
 
 def parse_datasets(filepath: str) -> pd.DataFrame:
@@ -101,7 +102,7 @@ def predict(model, input_data, target_type="best", embedder_name="MiniLM3"):
     """
     if target_type != "multy" or embedder_name != "Albert":
         raise ValueError("Not implemented")
-    
+
     file_path = PATH_TO_EMBEDDINGS_TEMPLATE.format(
         model_name=embedder_name, data_name="bodies"
     )
@@ -135,7 +136,7 @@ def predict(model, input_data, target_type="best", embedder_name="MiniLM3"):
     y = answers["Probability"].tolist()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     print("Making predictions with multy target model...")
     model = model.to(device)
     model.eval()
@@ -154,15 +155,12 @@ def predict(model, input_data, target_type="best", embedder_name="MiniLM3"):
     for question in finally_normal_pred.keys():
         finally_normal_pred[question].sort()
 
-    import sys
-
     sys.path.append("..")
 
-    import utils.metrics as metrics
+    # print(metrics.ILS([[id for prob, id in responders[-5:]] for responders in finally_normal_pred.values()] {
+    #     # I do not have embeddingd
+    # }))
 
-    print(metrics.ILS([[id for prob, id in responders[-5:]] for responders in finally_normal_pred.values()] {
-        # I do not have embeddingd
-    }))
     return [(question, responders[-1][1]) for question, responders in finally_normal_pred.items()]
 
 
@@ -190,7 +188,6 @@ def main(target, embedder, model_path, input_data):
     )
 
     print(*predictions[:5], sep='\n')
-
 
 
 if __name__ == "__main__":
