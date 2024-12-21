@@ -1,5 +1,4 @@
-# Embeddings
-
+*.csv
 *.obj
 
 # Data files
