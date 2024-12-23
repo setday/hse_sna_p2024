@@ -182,7 +182,9 @@ def build_partition(graph):
     node_to_community = {
         node: partition.membership[i] for i, node in enumerate(i_graph.vs["_nx_name"])
     }
-    communities = [set(community) for community in partition]
+    communities = [set() for _ in range(max(partition.membership) + 1)]
+    for node in i_graph.vs["_nx_name"]:
+        communities[node_to_community[node]].add(node)
 
     return node_to_community, communities
 
@@ -221,6 +223,7 @@ def build_graph():
     users_to_community, user_communities = build_partition(
         graph.subgraph([node for node in graph.nodes if graph.nodes[node]["type"] == "user"])
     )
+    print(user_communities)
     
     user_stereotypes = []
     for community in user_communities:
@@ -236,7 +239,7 @@ def build_graph():
         for key in rates.keys():
             rates[key] /= len(community)
 
-        user_communities.append(rates)
+        user_stereotypes.append(rates)
 
 
     question_to_community, question_communities = build_partition(
@@ -257,7 +260,7 @@ def build_graph():
         for key in rates.keys():
             rates[key] /= len(community)
 
-        question_communities.append(rates)
+        question_stereotypes.append(rates)
 
 
     pos = {}
