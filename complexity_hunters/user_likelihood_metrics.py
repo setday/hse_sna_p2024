@@ -19,7 +19,7 @@ def _make_user_to_tags(user_tags, user_ids):
         if np.isnan(idx) or not tag:
             continue
 
-        user_to_tags[idx] |= set(tag)
+        user_to_tags[idx].add(tag)
 
     return user_to_tags
 
@@ -47,7 +47,7 @@ def sparse_user_tags_likelihood(user_tags, user_ids, barrier=0.8):
 
     result = []
 
-    for user1_idx in tqdm(range(users_cnt)):
+    for user1_idx in tqdm(range(users_cnt), desc="extracting user pairs based on tags"):
         for user2_idx in range(user1_idx + 1, users_cnt):
             user1 = users[user1_idx]
             user2 = users[user2_idx]
@@ -103,7 +103,7 @@ def sparse_user_answers_likelihood(user_answers, user_ids, barrier=0.8):
 
     result = []
 
-    for user1_idx in tqdm(range(users_cnt)):
+    for user1_idx in tqdm(range(users_cnt), desc="extracting user pairs based on answers"):
         for user2_idx in range(user1_idx + 1, users_cnt):
             user1 = users[user1_idx]
             user2 = users[user2_idx]

@@ -1,40 +1,22 @@
+import sys
 import os
 import pickle
-import warnings
 
 from typing import Any
 
 import swifter
 import pandas as pd
 import swifter
-from lxml.etree import XMLParser, parse
-from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 
 from scipy.special import softmax
 import numpy as np
 
+sys.path.append("..")  # to make utils importable
+import utils.data_worker
+import utils.consts
+
 
 PATH_TO_EMBEDDINGS_TEMPLATE = "./embeddings/{model_name}_{data_name}.obj"
-
-warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
-
-
-def html_to_str(row_html: str) -> str:
-    soup = BeautifulSoup(row_html, "html.parser")
-    return soup.get_text(separator=" ")
-
-
-def load_dataset(filepath: str) -> pd.DataFrame:
-    print(f"INFO: Loading dataset {filepath}...")
-
-    p = XMLParser(huge_tree=True)
-    tree = parse(filepath, parser=p)
-    root = tree.getroot()
-
-    print("Extracting data...")
-    data = [post.attrib for post in root.findall("row")]
-
-    return pd.DataFrame(data)
 
 
 def parse_datasets(filepath: str) -> pd.DataFrame:
@@ -46,10 +28,10 @@ def parse_datasets(filepath: str) -> pd.DataFrame:
         with open(f"{path_to_file}/dataset_cache/q_an_a.pkl", "rb") as f:
             return pickle.load(f)
 
-    posts = load_dataset(filepath)
+    posts = utils.data_worker.load_dataset(filepath)
 
     print("Preprocessing data...")
-    posts["Body"] = posts["Body"].swifter.apply(html_to_str)
+    posts["Body"] = posts["Body"].swifter.apply(utils.data_worker.html_to_str)
 
     # Drop rows where column "Body" has NaN values
     posts = posts.dropna(subset=["Body"])

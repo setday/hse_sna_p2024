@@ -1,71 +1,35 @@
 import sys
 
-sys.path.append(".")  # to make utils importable
-sys.path.append("..")  # to make utils importable
-
-import utils.data_loader
 import numpy
 import pandas
-import bs4
-import utils.consts
 import networkx
 import igraph
 import matplotlib.pyplot
 
+sys.path.append("../complexity_hunters/")  # to make utils importable
+sys.path.append("..")  # to make utils importable
 
-COLUMNS_TO_KEEP = [
-    "Id",
-    "PostTypeId",
-    "AcceptedAnswerId",
-    "Score",
-    "ViewCount",
-    "Body",
-    "OwnerUserId",
-    "Tags",
-    "AnswerCount",
-    "CommentCount",
-    "ParentId",
-]
+import utils.data_worker
+import utils.consts
+
+from complexity_hunters.extra_metrics import sets_iou
+from user_likelihood_metrics import sparse_user_tags_likelihood
+
 
 USER_QUESTION_WEIGHT_THRESHOLD = 0.3
 USER_USER_WEIGHT_THRESHOLD = 0.7
 QUESTION_QUESTION_WEIGHT_THRESHOLD = 0.3
 
 
-def parse_html(html_row):
-    if isinstance(html_row, str):
-        return bs4.BeautifulSoup(html_row, "html.parser").get_text(separator=" ")
-    return ""
-
-
-def fix_column_types(posts):
-    posts["AcceptedAnswerId"] = posts["AcceptedAnswerId"].fillna(-1.0)
-    posts["ViewCount"] = posts["ViewCount"].fillna(0.0)
-    posts["OwnerUserId"] = posts["OwnerUserId"].fillna(-1.0)
-    posts["AnswerCount"] = posts["AnswerCount"].fillna(0.0)
-    posts["ParentId"] = posts["ParentId"].fillna(-1.0)
-
-    posts = posts.astype(
-        {
-            "AcceptedAnswerId": int,
-            "ViewCount": int,
-            "OwnerUserId": int,
-            "AnswerCount": int,
-            "ParentId": int,
-        }
-    )
-
-    return posts
-
-
-def create_question_tags(questions):
-    question_to_tags = {}
-    for i in range(len(questions)):
-        question = questions.iloc[i]
-        question_to_tags[question.Id] = (
-            set(question.Tags.split("|")) if question.Tags is not None else set()
-        )
-        question_to_tags[question.Id].remove("")
+def create_question_tags(questions: pandas.DataFrame) -> dict[int, set[str]]:
+    tags_list = utils.data_worker.extract_tags_from_str(questions["Tags"])
+    question_ids = questions["Id"]
+    
+    question_to_tags = {
+        idx: tags
+        for idx, tags in zip(question_ids, tags_list)
+    }
+    
     return question_to_tags
 
 
@@ -137,21 +101,14 @@ def add_user_question_edges(graph, answers, questions, users):
                 )
 
 
-def add_user_user_edges(graph, users, user_to_tags):
-    for i, user1 in enumerate(users):
-        for user2 in users[:i]:
-            user1_tags = user_to_tags[user1]
-            user2_tags = user_to_tags[user2]
-
-            intersect = user1_tags & user2_tags
-            union = user1_tags | user2_tags
-
-            if len(union) < 4:
-                continue
-
-            weight = len(intersect) / len(union)
-            if weight >= USER_USER_WEIGHT_THRESHOLD:
-                graph.add_edge("u" + str(user1), "u" + str(user2))
+def add_user_user_edges(graph, user_badges):
+    user_pairs = sparse_user_tags_likelihood(
+        user_badges.Name,
+        user_badges.UserId,
+        barrier=USER_USER_WEIGHT_THRESHOLD
+    )
+    for user1, user2, weight in user_pairs:
+        graph.add_edge("u" + str(user1), "u" + str(user2))
 
 
 def add_question_question_edges(graph, questions, question_to_tags):
@@ -159,18 +116,25 @@ def add_question_question_edges(graph, questions, question_to_tags):
         for j in range(i):
             question1 = questions.iloc[i].Id
             question2 = questions.iloc[j].Id
-            question1_tags = question_to_tags[question1]
-            question2_tags = question_to_tags[question2]
 
-            intersect = question1_tags & question2_tags
-            union = question1_tags | question2_tags
-
-            if len(union) < 2:
-                continue
-
-            weight = len(intersect) / len(union)
+            weight = sets_iou(
+                question_to_tags[question1],
+                question_to_tags[question2],
+                min_union_size=2
+            )
             if weight >= QUESTION_QUESTION_WEIGHT_THRESHOLD:
                 graph.add_edge("q" + str(question1), "q" + str(question2))
+
+
+
+def add_undefined_atributes(graph):
+    for node in graph.nodes:
+        if "type" not in graph.nodes[node]:
+            graph.nodes[node]["type"] = "user" if node[0] == "u" else "question"
+        if "tags" not in graph.nodes[node]:
+            graph.nodes[node]["tags"] = set()
+        if "score" not in graph.nodes[node] and graph.nodes[node]["type"] == "question":
+            graph.nodes[node]["score"] = 0
 
 
 def build_partition(graph):
@@ -190,23 +154,24 @@ def build_partition(graph):
 
 
 def build_graph():
-    posts = utils.data_loader.load_dataset("data/Posts.xml", full=True)
-    posts = pandas.concat(
-        [
-            posts[posts.PostTypeId == 1].sample(n=500).reset_index(drop=True),
-            posts[posts.PostTypeId == 2].sample(n=10000).reset_index(drop=True),
-        ]
-    )
-    badges = utils.data_loader.load_dataset("data/Badges.xml", full=True)
+    posts = utils.data_worker.load_dataset(utils.consts.POSTS_DATA_PATH, debug_slice=True)
+    # questions, answers = utils.data_worker.question_answer_split(posts)
+    # posts = pandas.concat(
+    #     [
+    #         questions.sample(n=500).reset_index(drop=True),
+    #         answers.sample(n=10000).reset_index(drop=True),
+    #     ]
+    # )
+    badges = utils.data_worker.load_dataset(utils.consts.BADGES_DATA_PATH, debug_slice=False)
+    badges = badges[badges.UserId.isin(posts.OwnerUserId.unique())]
 
-    posts = posts[COLUMNS_TO_KEEP]
-    posts["Body"] = posts["Body"].apply(parse_html)
+    posts = posts[utils.consts.POST_ESSENTIAL_COLUMNS]
+    posts["Body"] = posts["Body"].apply(utils.data_worker.html_to_str)
 
-    posts = fix_column_types(posts)
+    posts = utils.data_worker.posts_fill_na(posts)
 
     users = numpy.sort(posts.OwnerUserId.unique())[1:500]  # remove NaN
-    questions = posts[posts.PostTypeId == 1]
-    answers = posts[posts.PostTypeId == 2]
+    questions, answers = utils.data_worker.question_answer_split(posts)
 
     graph = networkx.Graph()
 
@@ -217,13 +182,15 @@ def build_graph():
     apply_question_attributes(graph, questions, question_to_tags)
 
     add_user_question_edges(graph, answers, questions, users)
-    add_user_user_edges(graph, users, user_to_tags)
+    add_user_user_edges(graph, badges)
     add_question_question_edges(graph, questions, question_to_tags)
 
+    add_undefined_atributes(graph)
+
+    user_nodes = [node for node in graph.nodes if graph.nodes[node]["type"] == "user"]
     users_to_community, user_communities = build_partition(
-        graph.subgraph([node for node in graph.nodes if graph.nodes[node]["type"] == "user"])
+        graph.subgraph(user_nodes)
     )
-    print(user_communities)
     
     user_stereotypes = []
     for community in user_communities:
@@ -242,8 +209,9 @@ def build_graph():
         user_stereotypes.append(rates)
 
 
+    question_nodes = [node for node in graph.nodes if graph.nodes[node]["type"] == "question"]
     question_to_community, question_communities = build_partition(
-        graph.subgraph([node for node in graph.nodes if graph.nodes[node]["type"] == "question"])
+        graph.subgraph(question_nodes)
     )
 
     question_stereotypes = []
@@ -264,17 +232,17 @@ def build_graph():
 
 
     pos = {}
-    for i, user in enumerate(users):
-        x = i / len(users)
-        pos["u" + str(user)] = (x * (1 - x), x)
+    for i, user in enumerate(user_nodes):
+        x = i / len(user_nodes)
+        pos[user] = (x * (1 - x), x)
 
-    for i in range(len(questions)):
-        question = questions.iloc[i]
-        x = i / len(questions)
-        pos["q" + str(int(question.Id))] = (1 - x * (1 - x), x)
+    for i, question in enumerate(question_nodes):
+        x = i / len(question_nodes)
+        pos[question] = (1 - x * (1 - x), x)
 
     networkx.draw(graph, pos, node_size=20, width=1, alpha=0.1)
     matplotlib.pyplot.show()
 
 
-build_graph()
+if __name__ == "__main__":
+    build_graph()

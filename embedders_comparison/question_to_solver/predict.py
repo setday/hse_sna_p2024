@@ -1,39 +1,22 @@
 import sys
-import json
 import os
 import pickle
-import warnings
 
-from typing import Any
-
-import swifter
 import pandas as pd
 import swifter
-from lxml.etree import XMLParser, parse
-from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 
 from scipy.special import softmax
 import numpy as np
 
-
-from utils import metrics
+import torch
 
 import click
 
-from tqdm import tqdm
+sys.path.append("..")
+import utils.data_worker
+import utils.consts
 
-from sklearn.model_selection import train_test_split
 
-import torch
-from torch.utils.data import DataLoader
-
-import lightning as L
-
-from preprocess_data import create_multytarget_X_y, create_besttraget_X_y
-from boost_model import SolverPredictor
-from linear_model import SolverEvaluatorLightningModule as SolverEvaluator
-
-from dataset import QuestionSolverDataset
 PATH_TO_EMBEDDINGS_TEMPLATE = "./embeddings/{model_name}_{data_name}.obj"
 
 
@@ -46,10 +29,10 @@ def parse_datasets(filepath: str) -> pd.DataFrame:
         with open(f"{path_to_file}/dataset_cache/q_an_a.pkl", "rb") as f:
             return pickle.load(f)
 
-    posts = load_dataset(filepath)
+    posts = utils.data_worker.load_dataset(filepath, debug_slice=False)
 
     print("Preprocessing data...")
-    posts["Body"] = posts["Body"].swifter.apply(html_to_str)
+    posts["Body"] = posts["Body"].swifter.apply(utils.data_worker.html_to_str)
 
     # Drop rows where column "Body" has NaN values
     posts = posts.dropna(subset=["Body"])
