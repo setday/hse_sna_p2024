@@ -51,7 +51,7 @@ def apply_question_attributes(graph, questions, question_to_tags):
         question_attributes["q" + str(question.Id)] = {
             "type": "question",
             "tags": question_to_tags[question.Id],
-            "score": question.Score,
+            # "score": question.Score,
         }
     networkx.set_node_attributes(graph, question_attributes)
 
@@ -135,8 +135,8 @@ def add_undefined_atributes(graph):
             graph.nodes[node]["type"] = "user" if node[0] == "u" else "question"
         if "tags" not in graph.nodes[node]:
             graph.nodes[node]["tags"] = set()
-        if "score" not in graph.nodes[node] and graph.nodes[node]["type"] == "question":
-            graph.nodes[node]["score"] = 0
+        # if "score" not in graph.nodes[node] and graph.nodes[node]["type"] == "question":
+        #    graph.nodes[node]["score"] = 0
 
 
 def build_graph(show=False):
