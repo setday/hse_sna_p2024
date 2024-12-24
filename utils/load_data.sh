@@ -11,6 +11,7 @@ cd data
 echo Download the data
 if [ ! -f "softwareengineering.stackexchange.com.7z" ]; then
     wget https://archive.org/download/stackexchange/softwareengineering.stackexchange.com.7z
+    # wget https://archive.org/download/stackexchange/networkengineering.stackexchange.com.7z 
 else
     echo "Data already downloaded"
 fi
@@ -18,6 +19,7 @@ fi
 echo Extract the data
 if [ ! -f "Posts.xml" ]; then
     7z x softwareengineering.stackexchange.com.7z
+    # 7z x networkengineering.stackexchange.com.7z
 else
     echo "Data already extracted"
 fi
