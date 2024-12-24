@@ -139,7 +139,7 @@ def add_undefined_atributes(graph):
         #    graph.nodes[node]["score"] = 0
 
 
-def build_graph(show=False):
+def build_graph():
     posts = utils.data_worker.load_dataset(utils.consts.POSTS_DATA_PATH, debug_slice=True)
     badges = utils.data_worker.load_dataset(utils.consts.BADGES_DATA_PATH, debug_slice=False)
     badges = badges[badges.UserId.isin(posts.OwnerUserId.unique())]
@@ -166,19 +166,31 @@ def build_graph(show=False):
 
     add_undefined_atributes(graph)
 
-    if show:
-        pos = {}
-        for i, user in enumerate(user_nodes):
-            x = i / len(user_nodes)
-            pos[user] = (x * (1 - x), x)
+    return graph
 
-        for i, question in enumerate(question_nodes):
-            x = i / len(question_nodes)
-            pos[question] = (1 - x * (1 - x), x)
 
-        networkx.draw(graph, pos, node_size=20, width=1, alpha=0.1)
-        matplotlib.pyplot.show()
+def show_graph(graph):
+    user_nodes = [node for node in graph.nodes if node[0] == "u"]
+    question_nodes = [node for node in graph.nodes if node[0] == "q"]
 
+    pos = {}
+    for i, user in enumerate(user_nodes):
+        x = i / len(user_nodes)
+        pos[user] = (x * (1 - x), x)
+
+    for i, question in enumerate(question_nodes):
+        x = i / len(question_nodes)
+        pos[question] = (1 - x * (1 - x), x)
+
+    networkx.draw(graph, pos, node_size=20, width=1, alpha=0.1)
+    matplotlib.pyplot.show()
+
+
+def save_graph(graph):
     pickle.dump(graph, open("../data/graph.pkl", "wb"))
     print("INFO: Dumped graph into ./data/graph.pkl")
 
+
+if __name__ == "__main__":
+    G = build_graph()
+    save_graph(G)
