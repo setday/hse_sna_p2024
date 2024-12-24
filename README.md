@@ -55,7 +55,3 @@ utils\load_data.sh
 ## Dataset
 
 We used open archived datasets of `archive.org` platform from two stack-exchange platforms - `softwareengineering.stackexchange.com` and `networkengineering.stackexchange.com`.
-
-For both datasets only `10'000` rows of posts were used.
-
-
