@@ -73,7 +73,7 @@ def extract_tags_from_str(tag_series: str) -> set[str]:
 
     tags = [
         set(str(str_of_tags)[1:-1].split("|"))
-        if str(str_of_tags) != "nan" and len(str(str_of_tags)) > 2
+        if str_of_tags and str(str_of_tags) != "nan" and str(str_of_tags) != "None" and len(str(str_of_tags)) > 2
         else set()
         for str_of_tags in tag_series
     ]
