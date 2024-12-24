@@ -33,7 +33,7 @@ The system performs the following steps:
 |-------------------------------------------|--------------|
 |            Community stereotype           |      0.60    |
 |                 CatBoost                  |       -      |
-|                 LightGCN                  |       -      |
+|                 LightGCN                  |     0.6295   |
 | LightGCN + Question complexity stochastic |       -      |
 
 ## Installation & Data load
