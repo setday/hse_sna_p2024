@@ -29,12 +29,12 @@ The system performs the following steps:
 
 ## Key results
 
-|                 Approach                  |     Score    |
-|-------------------------------------------|--------------|
-|            Community stereotype           |      0.60    |
-|                 CatBoost                  |       -      |
-|                 LightGCN                  |     0.6295   |
-| LightGCN + Question complexity stochastic |       -      |
+|                 Approach                  | Score (software) | Score (network) |
+|-------------------------------------------|------------------|-----------------|
+|                 CatBoost                  |       0.6594     |      0.6923     |
+|            Community stereotype           |       0.6037     |      0.7244     |
+|                 LightGCN                  |       0.4774     |      0.5743     |
+| LightGCN + Question complexity stochastic |       0.6295     |      0.7869     |
 
 ## Installation & Data load
 
